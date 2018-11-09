@@ -1,8 +1,24 @@
 extern crate turtle;
 
+use std::collections::HashMap;
 use turtle::Turtle;
 
 fn main() {
+    let mut rules: Rules = HashMap::new();
+    rules.insert(
+        Variable::F,
+        vec![
+            Variable::F,
+            Variable::Minus,
+            Variable::F,
+            Variable::Plus,
+            Variable::Plus,
+            Variable::F,
+            Variable::Minus,
+            Variable::F,
+        ],
+    );
+
     let config = (100.0, 60.0);
     let word = vec![
         Variable::F,
@@ -12,7 +28,7 @@ fn main() {
         Variable::Plus,
         Variable::F,
         Variable::Minus,
-        Variable::F
+        Variable::F,
     ];
 
     let mut turtle = Turtle::new();
@@ -21,6 +37,7 @@ fn main() {
     draw(&word, &mut turtle, config);
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
 enum Variable {
     F,
     Plus,
@@ -29,17 +46,26 @@ enum Variable {
 
 type Word = Vec<Variable>;
 
+type Rules = HashMap<Variable, Vec<Variable>>;
 
 fn draw<C>(word: &Word, turtle: &mut Turtle, c: C)
-where C: Into<Config> {
+where
+    C: Into<Config>,
+{
     let config: Config = c.into();
     for variable in word {
         match variable {
-            Variable::F => { turtle.forward(config.step); }
+            Variable::F => {
+                turtle.forward(config.step);
+            }
 
-            Variable::Minus => { turtle.left(config.angle); }
+            Variable::Minus => {
+                turtle.left(config.angle);
+            }
 
-            Variable::Plus => { turtle.right(config.angle); }
+            Variable::Plus => {
+                turtle.right(config.angle);
+            }
         }
     }
 }
@@ -51,12 +77,18 @@ struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Self { step: 100.0, angle: 60.0 }
+        Self {
+            step: 100.0,
+            angle: 60.0,
+        }
     }
 }
 
 impl From<(f64, f64)> for Config {
     fn from(tuple: (f64, f64)) -> Self {
-        Self { step: tuple.0, angle: tuple.1 }
+        Self {
+            step: tuple.0,
+            angle: tuple.1,
+        }
     }
 }
