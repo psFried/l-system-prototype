@@ -1,10 +1,17 @@
 extern crate turtle;
 
+use std::env;
 use std::collections::HashMap;
 use turtle::Turtle;
 
 fn main() {
-    let n = 4;
+    let args: Vec<String> = env::args().collect();
+    let n = args
+        .get(1)
+        .unwrap_or(&String::from("1"))
+        .parse::<i32>()
+        .expect("enter a valid number as first argument");
+
     let mut rules: Rules = HashMap::new();
     rules.insert(
         Variable::F,
