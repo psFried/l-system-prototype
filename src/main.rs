@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use turtle::Turtle;
 
 fn main() {
+    let n = 4;
     let mut rules: Rules = HashMap::new();
     rules.insert(
         Variable::F,
@@ -23,14 +24,14 @@ fn main() {
         Variable::F,
     ];
 
-    for _ in 0..1 {
+    for _ in 0..n {
         word = apply(&rules, word);
     }
 
     let mut turtle = Turtle::new();
     turtle.set_heading(0.0);
 
-    let config = (100.0, 60.0);
+    let config = (400.0 / (3.0f64).powi(n), 60.0);
     draw(&word, &mut turtle, config);
 }
 
