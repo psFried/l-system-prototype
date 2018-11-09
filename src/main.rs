@@ -1,7 +1,10 @@
+extern crate prototype;
 extern crate turtle;
 
-use std::env;
+use prototype::render::crab::Crab;
+use prototype::render::Renderer;
 use std::collections::HashMap;
+use std::env;
 use turtle::Turtle;
 
 fn main() {
@@ -27,19 +30,18 @@ fn main() {
         ],
     );
 
-    let mut word = vec![
-        Variable::F,
-    ];
+    let mut word = vec![Variable::F];
 
     for _ in 0..n {
         word = apply(&rules, word);
     }
 
+    let config = (400.0 / (3.0f64).powi(n), 60.0);
     let mut turtle = Turtle::new();
     turtle.set_heading(0.0);
+    let mut crab = Crab::new(config, turtle);
 
-    let config = (400.0 / (3.0f64).powi(n), 60.0);
-    draw(&word, &mut turtle, config);
+    render(&word, &mut crab);
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -54,65 +56,34 @@ type Word = Vec<Variable>;
 type Rules = HashMap<Variable, Vec<Variable>>;
 
 fn apply(rules: &Rules, word: Word) -> Word {
-    word
-        .into_iter()
-        .fold(Vec::new(), |mut acc, variable|{
-            match rules.get(&variable) {
-                Some(substitution) => {
-                    for var in substitution {
-                        acc.push(var.clone());
-                    }
-                }
-
-                None => {
-                    acc.push(variable)
+    word.into_iter().fold(Vec::new(), |mut acc, variable| {
+        match rules.get(&variable) {
+            Some(substitution) => {
+                for var in substitution {
+                    acc.push(var.clone());
                 }
             }
-            acc
-        })
+
+            None => acc.push(variable),
+        }
+        acc
+    })
 }
 
-fn draw<C>(word: &Word, turtle: &mut Turtle, c: C)
-where
-    C: Into<Config>,
-{
-    let config: Config = c.into();
+fn render(word: &Word, renderer: &mut Renderer) {
     for variable in word {
         match variable {
             Variable::F => {
-                turtle.forward(config.step);
+                renderer.forward();
             }
 
             Variable::Minus => {
-                turtle.left(config.angle);
+                renderer.left();
             }
 
             Variable::Plus => {
-                turtle.right(config.angle);
+                renderer.right();
             }
-        }
-    }
-}
-
-struct Config {
-    step: f64,
-    angle: f64,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            step: 100.0,
-            angle: 60.0,
-        }
-    }
-}
-
-impl From<(f64, f64)> for Config {
-    fn from(tuple: (f64, f64)) -> Self {
-        Self {
-            step: tuple.0,
-            angle: tuple.1,
         }
     }
 }
