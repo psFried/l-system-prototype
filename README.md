@@ -131,7 +131,38 @@ The visualization is tightly bound to the definition of the L-systems. I could n
 #### Considerations
 The implementation does not does not support all features of turtle graphics. Most notable it the lack to push and pop states from the stack.
 
+### [Renderer Trait](https://github.com/columbus-elst-connection/l-system-prototype/tree/c3966686ce0f35467d1905a5525237c851dae293)
+
+I created an `Renderer` trait with a [`prototype::render::crab::Crab`](https://github.com/columbus-elst-connection/l-system-prototype/blob/c3966686ce0f35467d1905a5525237c851dae293/src/render/crab.rs) and a [`prototype::render::string::Collector`](https://github.com/columbus-elst-connection/l-system-prototype/blob/c3966686ce0f35467d1905a5525237c851dae293/src/render/string.rs) implementation.
+
+```rust
+pub trait Renderer {
+    fn forward(&mut self);
+
+    fn left(&mut self);
+
+    fn right(&mut self);
+}
+```
+
+The `Collector` shows the generated string
+
+```plain
+F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F-F-F++F-F-F-F++F-F++F-F++F-F-F-F++F-F
+```
+
+#### Pros & Cons
+##### Pros
+This allows for swapping the rendering implementation more easily.
+
+##### Cons
+This is very much geared to a ~turtle~crab-graphics rendition.
+
+#### Considerations
+Should we have have more general render contact? The [book][] extends crab-graphics to three dimensions. In what direction do we want to go?
+
 [l-system]: https://en.wikipedia.org/wiki/L-system
 [video]: https://www.youtube.com/watch?v=E1B4UoSQMFw
 [koch]: https://en.wikipedia.org/wiki/Koch_snowflake
 [turtle]: https://turtle.rs/
+[book]: http://algorithmicbotany.org/papers/abop/abop.pdf
