@@ -19,25 +19,22 @@ fn main() {
         ],
     );
 
-    let config = (100.0, 60.0);
-    let word = vec![
-        Variable::F,
-        Variable::Minus,
-        Variable::F,
-        Variable::Plus,
-        Variable::Plus,
-        Variable::F,
-        Variable::Minus,
+    let mut word = vec![
         Variable::F,
     ];
+
+    for _ in 0..1 {
+        word = apply(&rules, word);
+    }
 
     let mut turtle = Turtle::new();
     turtle.set_heading(0.0);
 
+    let config = (100.0, 60.0);
     draw(&word, &mut turtle, config);
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum Variable {
     F,
     Plus,
@@ -47,6 +44,25 @@ enum Variable {
 type Word = Vec<Variable>;
 
 type Rules = HashMap<Variable, Vec<Variable>>;
+
+fn apply(rules: &Rules, word: Word) -> Word {
+    word
+        .into_iter()
+        .fold(Vec::new(), |mut acc, variable|{
+            match rules.get(&variable) {
+                Some(substitution) => {
+                    for var in substitution {
+                        acc.push(var.clone());
+                    }
+                }
+
+                None => {
+                    acc.push(variable)
+                }
+            }
+            acc
+        })
+}
 
 fn draw<C>(word: &Word, turtle: &mut Turtle, c: C)
 where
