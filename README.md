@@ -12,6 +12,8 @@ Inspired by the [Fractal Tree][video] coding challenge, we want to recreate that
 ## Progress
 ### [Initial Implementation](https://github.com/columbus-elst-connection/l-system-prototype/tree/3101fd714bff5284cec72f849bee3707d9570ca8)
 
+![The first L-system rendered by the prototype](https://columbus-elst-connection.github.io/l-system-prototype/image/koch.png)
+
 The initial implementation rendered the famous [Koch curve][koch] from the following L-system.
 
 ```plain
