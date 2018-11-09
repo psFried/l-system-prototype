@@ -1,11 +1,10 @@
 extern crate prototype;
 extern crate turtle;
 
-use prototype::render::crab::Crab;
+use prototype::render::string::Collector;
 use prototype::render::Renderer;
 use std::collections::HashMap;
 use std::env;
-use turtle::Turtle;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -36,12 +35,12 @@ fn main() {
         word = apply(&rules, word);
     }
 
-    let config = (400.0 / (3.0f64).powi(n), 60.0);
-    let mut turtle = Turtle::new();
-    turtle.set_heading(0.0);
-    let mut crab = Crab::new(config, turtle);
 
-    render(&word, &mut crab);
+    let mut renderer = Collector::new();
+
+    render(&word, &mut renderer);
+
+    println!("{}", renderer);
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
