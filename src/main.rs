@@ -22,17 +22,34 @@ fn main() {
         Variable::F,
         vec![
             Variable::F,
-            Variable::Minus,
-            Variable::F,
-            Variable::Plus,
-            Variable::Plus,
-            Variable::F,
-            Variable::Minus,
             Variable::F,
         ],
     );
+    rules.insert(
+        Variable::X,
+        vec![
+            Variable::F,
+            Variable::Plus,
+            Variable::Open,
+            Variable::Open,
+            Variable::X,
+            Variable::Close,
+            Variable::Minus,
+            Variable::X,
+            Variable::Close,
+            Variable::Minus,
+            Variable::F,
+            Variable::Open,
+            Variable::Minus,
+            Variable::F,
+            Variable::X,
+            Variable::Close,
+            Variable::Plus,
+            Variable::X
+        ],
+    );
 
-    let mut word = vec![Variable::F];
+    let mut word = vec![Variable::X];
 
     for _ in 0..n {
         word = apply(&rules, word);
@@ -41,8 +58,7 @@ fn main() {
 
     let mut collector = Collector::new();
     let mut turtle = Turtle::new();
-    turtle.set_heading(0.0);
-    let config = (400.0 / 3.0f64.powi(n), 60.0);
+    let config = (200.0 / 2.5f64.powi(n), 25.0);
     let mut crab = Crab::new(config, turtle);
 
     {
@@ -62,8 +78,11 @@ fn main() {
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum Variable {
     F,
+    X,
     Plus,
     Minus,
+    Open,
+    Close,
 }
 
 type Word = Vec<Variable>;
@@ -98,6 +117,18 @@ fn render(word: &Word, renderer: &mut Renderer) {
 
             Variable::Plus => {
                 renderer.right();
+            }
+
+            Variable::Open => {
+                renderer.push();
+            }
+
+            Variable::Close => {
+                renderer.pop();
+            }
+
+            _ => {
+                // do nothing
             }
         }
     }
