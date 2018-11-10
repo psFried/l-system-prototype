@@ -161,6 +161,15 @@ This is very much geared to a ~turtle~crab-graphics rendition.
 #### Considerations
 Should we have have more general render contact? The [book][] extends crab-graphics to three dimensions. In what direction do we want to go?
 
+### [Push & Pop](https://github.com/columbus-elst-connection/l-system-prototype/tree/bf6b91dd32f116ad31f39ebd42e7af69e506320a)
+
+![Rendition of example 7 of the L-system wikipedia](https://columbus-elst-connection.github.io/l-system-prototype/image/plant.png)
+
+The crab can now push it's state on a `[` and pop to that state on `]`. The `Renderer` trait is extended with `push` and `pop` methods.
+
+##### Considerations
+For a 3 dimensional crab we could provide an `Renderer3d` that inherits all the functions of `Renderer` and add some more.
+
 [l-system]: https://en.wikipedia.org/wiki/L-system
 [video]: https://www.youtube.com/watch?v=E1B4UoSQMFw
 [koch]: https://en.wikipedia.org/wiki/Koch_snowflake
