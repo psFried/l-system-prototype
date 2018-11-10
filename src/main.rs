@@ -58,6 +58,7 @@ fn main() {
 
     let mut collector = Collector::new();
     let mut turtle = Turtle::new();
+    turtle.set_heading(65.0);
     let config = (200.0 / 2.5f64.powi(n), 25.0);
     let mut crab = Crab::new(config, turtle);
 
