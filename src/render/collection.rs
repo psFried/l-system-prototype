@@ -39,4 +39,20 @@ impl<'a> Renderer for Collection<'a> {
         }
         self.renderers = renderers;
     }
+
+    fn push(&mut self) {
+        let mut renderers = mem::replace(&mut self.renderers, vec![]);
+        for ref mut renderer in &mut renderers {
+            renderer.push();
+        }
+        self.renderers = renderers;
+    }
+
+    fn pop(&mut self) {
+        let mut renderers = mem::replace(&mut self.renderers, vec![]);
+        for ref mut renderer in &mut renderers {
+            renderer.pop();
+        }
+        self.renderers = renderers;
+    }
 }

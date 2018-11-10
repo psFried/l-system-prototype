@@ -31,6 +31,18 @@ impl Renderer for Reporter {
         handle.write(b"+").unwrap_or(0);
         handle.flush().unwrap_or(());
     }
+
+    fn push(&mut self) {
+        let mut handle = self.stdout.lock();
+        handle.write(b"[").unwrap_or(0);
+        handle.flush().unwrap_or(());
+    }
+
+    fn pop(&mut self) {
+        let mut handle = self.stdout.lock();
+        handle.write(b"]").unwrap_or(0);
+        handle.flush().unwrap_or(());
+    }
 }
 
 pub struct Collector {
@@ -54,6 +66,14 @@ impl Renderer for Collector {
 
     fn right(&mut self) {
         self.collected += "+";
+    }
+
+    fn push(&mut self) {
+        self.collected += "[";
+    }
+
+    fn pop(&mut self) {
+        self.collected += "]";
     }
 }
 

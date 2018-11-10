@@ -8,4 +8,8 @@ pub trait Renderer {
     fn left(&mut self);
 
     fn right(&mut self);
+
+    fn push(&mut self);
+
+    fn pop(&mut self);
 }

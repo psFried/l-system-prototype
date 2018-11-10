@@ -1,10 +1,22 @@
 use super::Renderer;
-use turtle::Turtle;
+use turtle::{Turtle, Point, Angle};
 
 pub struct Crab {
     step: f64,
     angle: f64,
+    stack: Vec<State>,
     turtle: Turtle,
+}
+
+struct State {
+    position: Point,
+    heading: Angle,
+}
+
+impl State {
+    fn new(position: Point, heading: Angle) -> Self {
+        Self { position, heading }
+    }
 }
 
 impl Crab {
@@ -16,6 +28,7 @@ impl Crab {
         Self {
             step: config.step,
             angle: config.angle,
+            stack: Vec::new(),
             turtle,
         }
     }
@@ -32,6 +45,24 @@ impl Renderer for Crab {
 
     fn right(&mut self) {
         self.turtle.right(self.angle);
+    }
+
+    fn push(&mut self) {
+        let position = self.turtle.position();
+        let heading = self.turtle.heading();
+        let state = State::new(position, heading);
+        self.stack.push(state);
+    }
+
+    fn pop(&mut self) {
+        let state_option = self.stack.pop();
+        if state_option.is_some() {
+            let state = state_option.unwrap();
+            self.turtle.pen_up();
+            self.turtle.go_to(state.position);
+            self.turtle.set_heading(state.heading);
+            self.turtle.pen_down();
+        }
     }
 }
 
