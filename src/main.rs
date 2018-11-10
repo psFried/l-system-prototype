@@ -3,7 +3,7 @@ extern crate turtle;
 
 use prototype::render::crab::Crab;
 use prototype::render::collection::batch;
-use prototype::render::string::Collector;
+use prototype::render::string::{Reporter, Collector};
 use prototype::render::Renderer;
 use std::collections::HashMap;
 use std::env;
@@ -46,15 +46,17 @@ fn main() {
     let mut crab = Crab::new(config, turtle);
 
     {
+        let mut reporter = Reporter::new();
         let mut renderer = batch(vec![
             &mut collector,
             &mut crab,
+            &mut reporter,
         ]);
 
         render(&word, &mut renderer);
     }
 
-    println!("{}", collector);
+    println!("\n{}", collector);
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
