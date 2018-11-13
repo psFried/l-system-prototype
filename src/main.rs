@@ -19,37 +19,37 @@ fn main() {
 
     let mut rules: Rules = Rules::new();
     rules.insert(
-        Variable::F,
+        Variable::new('F'),
         vec![
-            Variable::F,
-            Variable::F,
+            Variable::new('F'),
+            Variable::new('F'),
         ],
     );
     rules.insert(
-        Variable::X,
+        Variable::new('X'),
         vec![
-            Variable::F,
-            Variable::Plus,
-            Variable::Open,
-            Variable::Open,
-            Variable::X,
-            Variable::Close,
-            Variable::Minus,
-            Variable::X,
-            Variable::Close,
-            Variable::Minus,
-            Variable::F,
-            Variable::Open,
-            Variable::Minus,
-            Variable::F,
-            Variable::X,
-            Variable::Close,
-            Variable::Plus,
-            Variable::X
+            Variable::new('F'),
+            Variable::new('+'),
+            Variable::new('['),
+            Variable::new('['),
+            Variable::new('X'),
+            Variable::new(']'),
+            Variable::new('-'),
+            Variable::new('X'),
+            Variable::new(']'),
+            Variable::new('-'),
+            Variable::new('F'),
+            Variable::new('['),
+            Variable::new('-'),
+            Variable::new('F'),
+            Variable::new('X'),
+            Variable::new(']'),
+            Variable::new('+'),
+            Variable::new('X')
         ],
     );
 
-    let mut word = vec![Variable::X];
+    let mut word = vec![Variable::new('X')];
 
     for _ in 0..n {
         word = apply(&rules, word);
@@ -77,13 +77,14 @@ fn main() {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-enum Variable {
-    F,
-    X,
-    Plus,
-    Minus,
-    Open,
-    Close,
+struct Variable {
+    symbol: char,
+}
+
+impl Variable {
+    pub fn new(symbol: char) -> Self {
+        Self { symbol }
+    }
 }
 
 type Word = Vec<Variable>;
@@ -124,24 +125,24 @@ fn apply(rules: &Rules, word: Word) -> Word {
 
 fn render(word: &Word, renderer: &mut Renderer) {
     for variable in word {
-        match variable {
-            Variable::F => {
+        match variable.symbol {
+            'F' => {
                 renderer.forward();
             }
 
-            Variable::Minus => {
+            '-' => {
                 renderer.left();
             }
 
-            Variable::Plus => {
+            '+' => {
                 renderer.right();
             }
 
-            Variable::Open => {
+            '[' => {
                 renderer.push();
             }
 
-            Variable::Close => {
+            ']' => {
                 renderer.pop();
             }
 
