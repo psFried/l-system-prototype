@@ -170,6 +170,26 @@ The crab can now push it's state on a `[` and pop to that state on `]`. The `Ren
 ##### Considerations
 For a 3 dimensional crab we could provide an `Renderer3d` that inherits all the functions of `Renderer` and add some more.
 
+### [Symbol based Variables](https://github.com/columbus-elst-connection/l-system-prototype/tree/59fded4a47315591e92115eec5373872e3792655)
+In a push towards a dynamic representation of rules we swapped the enum-based implementation to a symbol based implementation.
+
+```rust
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+struct Variable {
+    symbol: char,
+}
+```
+
+#### Pros & Cons
+##### Pros
+It allows for a dynamic definition of L-system rules.
+
+##### Cons
+We have lost the compile time check.
+
+#### Considerations
+With the crab-graphics interpretation we already lost the compile time check because we have to ignore the symbols other then `F+-[]`, so there is little lost with this design.
+
 [l-system]: https://en.wikipedia.org/wiki/L-system
 [video]: https://www.youtube.com/watch?v=E1B4UoSQMFw
 [koch]: https://en.wikipedia.org/wiki/Koch_snowflake
