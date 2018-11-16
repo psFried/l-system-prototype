@@ -1,11 +1,11 @@
 extern crate prototype;
 extern crate turtle;
 
+use prototype::system::{Rules, Variable, Word, apply};
 use prototype::render::crab::Crab;
 use prototype::render::collection::batch;
 use prototype::render::string::{Reporter, Collector};
 use prototype::render::Renderer;
-use std::collections::HashMap;
 use std::env;
 use turtle::Turtle;
 
@@ -76,52 +76,6 @@ fn main() {
     println!("\n{}", collector);
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-struct Variable {
-    symbol: char,
-}
-
-impl Variable {
-    pub fn new(symbol: char) -> Self {
-        Self { symbol }
-    }
-}
-
-type Word = Vec<Variable>;
-
-struct Rules {
-    substitutions: HashMap<Variable, Vec<Variable>>
-}
-
-impl Rules {
-    pub fn new() -> Self {
-        Self { substitutions: HashMap::new() }
-    }
-
-    pub fn insert(&mut self, variable: Variable, substitution: Vec<Variable>) {
-        self.substitutions.insert(variable, substitution);
-    }
-
-    pub fn get(&self, variable: &Variable) -> Vec<Variable> {
-        match self.substitutions.get(variable) {
-            Some(substitution) => {
-                substitution.clone()
-            }
-
-            None => vec![variable.clone()],
-        }
-    }
-}
-
-fn apply(rules: &Rules, word: Word) -> Word {
-    word.into_iter().fold(Vec::new(), |mut acc, variable| {
-        let substitution = rules.get(&variable);
-        for var in substitution {
-            acc.push(var.clone());
-        }
-        acc
-    })
-}
 
 fn render(word: &Word, renderer: &mut Renderer) {
     for variable in word {
