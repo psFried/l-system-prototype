@@ -51,10 +51,7 @@ fn main() {
 
     let mut word = vec![Variable::new('X')];
 
-    for _ in 0..n {
-        word = rules.apply(word);
-    }
-
+    word = rules.generation(word, n);
 
     let mut collector = Collector::new();
     let mut turtle = Turtle::new();

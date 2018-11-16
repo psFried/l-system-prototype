@@ -36,6 +36,13 @@ impl Rules {
         })
     }
 
+    pub fn generation(&self, mut word: Word, n: i32) -> Word {
+        for _ in 0..n {
+            word = self.apply(word);
+        }
+        word
+    }
+
     fn get(&self, variable: &Variable) -> Vec<Variable> {
         match self.substitutions.get(variable) {
             Some(substitution) => {
