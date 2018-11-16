@@ -1,7 +1,7 @@
 extern crate prototype;
 extern crate turtle;
 
-use prototype::system::{Rules, Variable, Word, apply};
+use prototype::system::{Rules, Variable, Word};
 use prototype::render::crab::Crab;
 use prototype::render::collection::batch;
 use prototype::render::string::{Reporter, Collector};
@@ -52,7 +52,7 @@ fn main() {
     let mut word = vec![Variable::new('X')];
 
     for _ in 0..n {
-        word = apply(&rules, word);
+        word = rules.apply(word);
     }
 
 

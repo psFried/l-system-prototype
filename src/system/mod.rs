@@ -26,7 +26,17 @@ impl Rules {
         self.substitutions.insert(variable, substitution);
     }
 
-    pub fn get(&self, variable: &Variable) -> Vec<Variable> {
+    pub fn apply(&self, word: Word) -> Word {
+        word.into_iter().fold(Vec::new(), |mut acc, variable| {
+            let substitution = self.get(&variable);
+            for var in substitution {
+                acc.push(var.clone());
+            }
+            acc
+        })
+    }
+
+    fn get(&self, variable: &Variable) -> Vec<Variable> {
         match self.substitutions.get(variable) {
             Some(substitution) => {
                 substitution.clone()
@@ -35,15 +45,7 @@ impl Rules {
             None => vec![variable.clone()],
         }
     }
+
 }
 
-pub fn apply(rules: &Rules, word: Word) -> Word {
-    word.into_iter().fold(Vec::new(), |mut acc, variable| {
-        let substitution = rules.get(&variable);
-        for var in substitution {
-            acc.push(var.clone());
-        }
-        acc
-    })
-}
 
