@@ -1,7 +1,8 @@
 extern crate prototype;
 extern crate turtle;
 
-use prototype::system::{Rules, Variable, Word};
+use prototype::parser::Parser;
+use prototype::system::{Variable, Word};
 use prototype::render::crab::Crab;
 use prototype::render::collection::batch;
 use prototype::render::string::{Reporter, Collector};
@@ -17,37 +18,8 @@ fn main() {
         .parse::<i32>()
         .expect("enter a valid number as first argument");
 
-    let mut rules: Rules = Rules::new();
-    rules.insert(
-        Variable::new('F'),
-        vec![
-            Variable::new('F'),
-            Variable::new('F'),
-        ],
-    );
-    rules.insert(
-        Variable::new('X'),
-        vec![
-            Variable::new('F'),
-            Variable::new('+'),
-            Variable::new('['),
-            Variable::new('['),
-            Variable::new('X'),
-            Variable::new(']'),
-            Variable::new('-'),
-            Variable::new('X'),
-            Variable::new(']'),
-            Variable::new('-'),
-            Variable::new('F'),
-            Variable::new('['),
-            Variable::new('-'),
-            Variable::new('F'),
-            Variable::new('X'),
-            Variable::new(']'),
-            Variable::new('+'),
-            Variable::new('X')
-        ],
-    );
+    let parser = Parser::new();
+    let rules = parser.parse("plant.ls");
 
     let mut word = vec![Variable::new('X')];
 
