@@ -19,7 +19,9 @@ fn main() {
         .expect("enter a valid number as first argument");
 
     let parser = Parser::new();
-    let rules = parser.parse("plant.ls");
+    let rules = parser
+        .parse("systems/plant.ls")
+        .expect("a definition of a L-system");
 
     let mut word = vec![Variable::new('X')];
 
