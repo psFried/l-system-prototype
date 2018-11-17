@@ -1,9 +1,11 @@
+mod combinator;
+
 use std::path::Path;
 use std::fs::File;
 use std::io::{Error, Read};
 
 use super::system::{Rules, Variable};
-
+use self::combinator::{ParseError};
 
 pub struct Parser {
 }
@@ -23,18 +25,12 @@ impl Parser {
     }
 }
 
-fn to_parse_error(io_error: Error) -> ParseError {
-    ParseError::IO(io_error)
+fn to_parse_error(_io_error: Error) -> ParseError {
+    ParseError::IO
 }
 
 fn to_rules(tuple: (Rules, &str))-> Rules {
     tuple.0
-}
-
-#[derive(Debug)]
-pub enum ParseError {
-    IO(Error),
-    GenericError,
 }
 
 fn parse_rules(input: &str) -> Result<(Rules, &str), ParseError> {
@@ -72,3 +68,16 @@ fn parse_rules(input: &str) -> Result<(Rules, &str), ParseError> {
     Ok((rules, &input[..]))
 }
 
+fn parse_rule(input: &str) -> Result<((Variable, Vec<Variable>), &str), ParseError> {
+    let result = (Variable::new('F'), vec!(
+        Variable::new('F'),
+        Variable::new('-'),
+        Variable::new('F'),
+        Variable::new('+'),
+        Variable::new('+'),
+        Variable::new('F'),
+        Variable::new('-'),
+        Variable::new('F'),
+    ));
+    Ok((result, &input[..]))
+}
