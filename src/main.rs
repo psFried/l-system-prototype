@@ -1,7 +1,7 @@
 extern crate prototype;
 extern crate turtle;
 
-use prototype::parser::Parser;
+use prototype::parser::parse;
 use prototype::system::{Variable, Word};
 use prototype::render::crab::Crab;
 use prototype::render::collection::batch;
@@ -18,9 +18,7 @@ fn main() {
         .parse::<i32>()
         .expect("enter a valid number as first argument");
 
-    let parser = Parser::new();
-    let rules = parser
-        .parse("systems/plant.ls")
+    let rules = parse("systems/plant.ls")
         .expect("a definition of a L-system");
 
     let mut word = vec![Variable::new('X')];
