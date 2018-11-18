@@ -190,8 +190,98 @@ We have lost the compile time check.
 #### Considerations
 With the crab-graphics interpretation we already lost the compile time check because we have to ignore the symbols other then `F+-[]`, so there is little lost with this design.
 
+### [WIP] Parsing
+We are working on a struct based [parser combinator][combinator] framework. The core abstraction issuecomment
+
+```rust
+pub trait Parser<'a, T> {
+    fn parse(&self, input: &'a str) -> Result<(T, &'a str), ParseError>;
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ParseError {
+    IO,
+    ExpectingCharacter(char),
+    ExpectingPredicate,
+    EndOfInput,
+    GenericError,
+}
+```
+
+Each building block, or combinator implements the `Parser` trait. For example a `at_least` parses at least `n` of the things that `parser` parses.
+
+```elm
+pub struct AtLeast<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+    n: u8,
+    parser: P,
+    phantom: PhantomData<&'a T>,
+}
+
+impl<'a, T, P> AtLeast<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+    pub fn new(n: u8, parser: P) -> Self {
+        AtLeast { n, parser, phantom: PhantomData }
+    }
+}
+
+pub fn at_least<'a, T>(n: u8, parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
+    AtLeast::new(n, parser)
+}
+
+impl<'a, T, P> Parser<'a, Vec<T>> for AtLeast<'a, T, P> where P: Parser<'a, T> + Sized {
+    fn parse(&self, input: &'a str) -> Result<(Vec<T>, &'a str), ParseError> {
+        let mut result = vec![];
+        let mut source = input;
+        let mut count = self.n;
+        while count > 0 {
+            let attempt = self.parser.parse(source);
+            match attempt {
+                Ok((value, rest)) => {
+                    result.push(value);
+                    source = rest;
+                }
+
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+            count -= 1;
+        }
+        loop {
+            let attempt = self.parser.parse(source);
+            match attempt {
+                Ok((value, rest)) => {
+                    result.push(value);
+                    source = rest;
+                }
+
+                Err(_) => {
+                    break;
+                }
+            }
+        }
+        Ok((result, source))
+    }
+}
+```
+
+#### Pros & Cons
+##### Pros
+Besides lifetime issues and the occasional `PhantomData`, the struct based parser is simple to work with. The process is largely "mechanize-able", i.e. for a type of parser like character, any, map
+
+1. Create a struct containing the necessary fields,
+2. Implement `Parser` for struct.
+
+All of this is "standard" Rust.
+
+##### Cons
+At times it feels tedious to spell everything out.
+
+#### Considerations
+I feel that Parser API could be a bit more lean. It seems very heavy on the generics side.
+
 [l-system]: https://en.wikipedia.org/wiki/L-system
 [video]: https://www.youtube.com/watch?v=E1B4UoSQMFw
 [koch]: https://en.wikipedia.org/wiki/Koch_snowflake
 [turtle]: https://turtle.rs/
 [book]: http://algorithmicbotany.org/papers/abop/abop.pdf
+[combinator]:https://en.wikipedia.org/wiki/Parser_combinator 
