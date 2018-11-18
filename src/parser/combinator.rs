@@ -127,6 +127,31 @@ impl<'a, F> Parser<'a, char> for Any<F> where F: Fn(char) -> bool + Sized {
     }
 }
 
+pub struct Map<'a, I, O, P, F> where I: 'a, P: Parser<'a, I> + Sized, F: Fn(I) -> O + Sized {
+
+    parser: P,
+    map: F,
+    phantom: PhantomData<&'a I>,
+}
+
+impl<'a, I, O, P, F> Map<'a, I, O, P, F> where I: 'a, P: Parser<'a, I> + Sized, F: Fn(I) -> O + Sized {
+    pub fn new(parser: P, map: F) -> Self {
+        Map { parser, map, phantom: PhantomData }
+    }
+}
+
+pub fn map<'a, I, O, P, F>(parser: P, map: F) -> impl Parser<'a, O> where I: 'a, P: Parser<'a, I> + Sized, F: Fn(I) -> O + Sized {
+    Map::new(parser, map)
+}
+
+impl<'a, I, O, P, F> Parser<'a, O> for Map<'a, I, O, P, F> where I: 'a, P: Parser<'a, I> + Sized, F: Fn(I) -> O + Sized {
+    fn parse(&self, input: &'a str) -> Result<(O, &'a str), ParseError> {
+        let attempt = self.parser.parse(input);
+        attempt.map(|(v, rest)|{ ((self.map)(v), rest)})
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -172,6 +197,17 @@ mod tests {
         let actual = parser.parse(input);
 
         let expected = Ok(('A', "AABCD"));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn map_many_a_character_to_length() {
+        let input = "AAABCD";
+        let parser = map(many(character('A')), |cs|{cs.len()});
+
+        let actual = parser.parse(input);
+
+        let expected = Ok((3, "BCD"));
         assert_eq!(actual, expected);
     }
 }
