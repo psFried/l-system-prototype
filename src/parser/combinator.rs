@@ -8,6 +8,8 @@ pub trait Parser<'a, T> {
 pub enum ParseError {
     IO,
     ExpectingCharacter(char),
+    ExpectingPredicate,
+    EndOfInput,
     GenericError,
 }
 
@@ -92,6 +94,39 @@ impl<'a, T, P> Parser<'a, Vec<T>> for AtLeast<'a, T, P> where P: Parser<'a, T> +
     }
 }
 
+pub struct Any<F> where F: Fn(char) -> bool + Sized {
+    predicate: F,
+}
+
+impl<F> Any<F> where F: Fn(char) -> bool + Sized {
+    pub fn new(predicate: F) -> Self {
+        Any { predicate }
+    }
+}
+
+pub fn any<'a, F>(predicate: F) -> impl Parser<'a, char> where F: Fn(char) -> bool + Sized {
+    Any::new(predicate)
+}
+
+impl<'a, F> Parser<'a, char> for Any<F> where F: Fn(char) -> bool + Sized {
+    fn parse(&self, input: &'a str) -> Result<(char, &'a str), ParseError> {
+        let character = input.chars().next();
+        match character {
+            Some(c) => {
+                if (self.predicate)(c) {
+                    Ok((c, &input[1..]))
+                } else {
+                    Err(ParseError::ExpectingPredicate)
+                }
+            },
+
+            None => {
+                Err(ParseError::EndOfInput)
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,6 +161,17 @@ mod tests {
         let actual = parser.parse(input);
 
         let expected = Ok((vec!['A', 'A', 'A'], "BCD"));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn parse_any_character() {
+        let input = "AAABCD";
+        let parser = any(|c: char|{ c.is_alphabetic() });
+
+        let actual = parser.parse(input);
+
+        let expected = Ok(('A', "AABCD"));
         assert_eq!(actual, expected);
     }
 }
