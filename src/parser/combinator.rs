@@ -16,7 +16,7 @@ pub struct Character {
 }
 
 impl Character {
-    pub fn new(character_to_match: char) -> Self {
+    pub fn new<'a>(character_to_match: char) -> impl Parser<'a, char> {
         Self { character_to_match }
     }
 }
