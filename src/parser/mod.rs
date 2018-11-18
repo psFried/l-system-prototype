@@ -5,24 +5,15 @@ use std::fs::File;
 use std::io::{Error, Read};
 
 use super::system::{Rules, Variable};
-use self::combinator::{ParseError};
+use self::combinator::{Parser, ParseError, many, character};
 
-pub struct Parser {
-}
-
-impl Parser {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn parse<P>(&self, path: P) -> Result<Rules, ParseError>
-    where P: AsRef<Path> {
-        let mut file = File::open(path).map_err(to_parse_error)?;
-        let mut input = String::new();
-        file.read_to_string(&mut input).map_err(to_parse_error)?;
-        let rules = parse_rules(&input);
-        rules.map(to_rules)
-    }
+pub fn parse<P>(path: P) -> Result<Rules, ParseError>
+where P: AsRef<Path> {
+    let mut file = File::open(path).map_err(to_parse_error)?;
+    let mut input = String::new();
+    file.read_to_string(&mut input).map_err(to_parse_error)?;
+    let rules = parse_rules(&input);
+    rules.map(to_rules)
 }
 
 fn to_parse_error(_io_error: Error) -> ParseError {
@@ -80,4 +71,23 @@ fn parse_rule(input: &str) -> Result<((Variable, Vec<Variable>), &str), ParseErr
         Variable::new('F'),
     ));
     Ok((result, &input[..]))
+}
+
+fn spaces<'a>() -> impl Parser<'a, Vec<char>> {
+    many(character(' '))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_parse_multiple_spaces() {
+        let input = "    ";
+        let parser = spaces();
+
+        let actual = parser.parse(input);
+
+        assert!(actual.is_ok());
+    }
 }
