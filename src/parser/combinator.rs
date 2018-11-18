@@ -71,6 +71,58 @@ impl<'a, T, P> Parser<'a, Vec<T>> for Many<'a, T, P> where P: Parser<'a, T> + Si
     }
 }
 
+pub struct AtLeast<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+    n: u8,
+    parser: P,
+    phantom: PhantomData<&'a T>,
+}
+
+impl<'a, T, P> AtLeast<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+    pub fn new(n: u8, parser: P) -> Self {
+        AtLeast { n, parser, phantom: PhantomData }
+    }
+}
+
+pub fn at_least<'a, T>(n: u8, parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
+    AtLeast::new(n, parser)
+}
+
+impl<'a, T, P> Parser<'a, Vec<T>> for AtLeast<'a, T, P> where P: Parser<'a, T> + Sized {
+    fn parse(&self, input: &'a str) -> Result<(Vec<T>, &'a str), ParseError> {
+        let mut result = vec![];
+        let mut source = input;
+        let mut count = self.n;
+        while count > 0 {
+            let attempt = self.parser.parse(source);
+            match attempt {
+                Ok((value, rest)) => {
+                    result.push(value);
+                    source = rest;
+                }
+
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+            count -= 1;
+        }
+        loop {
+            let attempt = self.parser.parse(source);
+            match attempt {
+                Ok((value, rest)) => {
+                    result.push(value);
+                    source = rest;
+                }
+
+                Err(_) => {
+                    break;
+                }
+            }
+        }
+        Ok((result, source))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,6 +142,17 @@ mod tests {
     fn parse_many_a_characters() {
         let input = "AAABCD";
         let parser = many(character('A'));
+
+        let actual = parser.parse(input);
+
+        let expected = Ok((vec!['A', 'A', 'A'], "BCD"));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn parse_at_least_2_a_characters() {
+        let input = "AAABCD";
+        let parser = at_least(2, character('A'));
 
         let actual = parser.parse(input);
 
