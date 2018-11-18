@@ -21,7 +21,7 @@ impl Character {
     }
 }
 
-pub fn character(character_to_match: char) -> Character {
+pub fn character<'a>(character_to_match: char) -> impl Parser<'a, char> {
     Character::new(character_to_match)
 }
 
@@ -46,7 +46,7 @@ impl<'a, T, P> Many<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
     }
 }
 
-pub fn many<'a, T, P>(parser: P) -> Many<'a, T, P> where P : Parser<'a, T> + Sized {
+pub fn many<'a, T>(parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
     Many::new(parser)
 }
 
