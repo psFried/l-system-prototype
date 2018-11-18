@@ -35,41 +35,10 @@ impl<'a> Parser<'a, char> for Character {
     }
 }
 
-pub struct Many<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
-    parser: P,
-    phantom: PhantomData<&'a T>,
-}
-
-impl<'a, T, P> Many<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
-    pub fn new(parser: P) -> Self {
-        Self { parser, phantom: PhantomData }
-    }
-}
-
 pub fn many<'a, T>(parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
-    Many::new(parser)
+    at_least(0, parser)
 }
 
-impl<'a, T, P> Parser<'a, Vec<T>> for Many<'a, T, P> where P: Parser<'a, T> + Sized {
-    fn parse(&self, input: &'a str) -> Result<(Vec<T>, &'a str), ParseError> {
-        let mut result = vec![];
-        let mut source = input;
-        loop {
-            let attempt = self.parser.parse(source);
-            match attempt {
-                Ok((value, rest)) => {
-                    result.push(value);
-                    source = rest;
-                }
-
-                Err(_) => {
-                    break;
-                }
-            }
-        }
-        Ok((result, source))
-    }
-}
 
 pub struct AtLeast<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
     n: u8,
