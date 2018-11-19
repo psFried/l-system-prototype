@@ -10,6 +10,7 @@ pub enum ParseError {
     ExpectingCharacter(char),
     ExpectingPredicate,
     EndOfInput,
+    ExpectingOneOfToParse,
     GenericError,
 }
 
@@ -151,6 +152,32 @@ impl<'a, I, O, P, F> Parser<'a, O> for Map<'a, I, O, P, F> where I: 'a, P: Parse
     }
 }
 
+pub struct OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+    options: Vec<P>,
+    phantom: PhantomData<&'a T>,
+}
+
+impl<'a, T, P> OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+    pub fn new(options: Vec<P>) -> Self {
+        Self { options, phantom: PhantomData }
+    }
+}
+
+pub fn one_of<'a, T, P>(options: Vec<P>) -> impl Parser<'a, T> where T: 'a, P: Parser<'a, T> + Sized {
+    OneOf::new(options)
+}
+
+impl<'a, T, P> Parser<'a, T> for OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+    fn parse(&self, input: &'a str) -> Result<(T, &'a str), ParseError> {
+        for ref parser in &self.options {
+            let attempt = parser.parse(input);
+            if attempt.is_ok() {
+                return attempt
+            }
+        }
+        Err(ParseError::ExpectingOneOfToParse)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -208,6 +235,20 @@ mod tests {
         let actual = parser.parse(input);
 
         let expected = Ok((3, "BCD"));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn  parse_one_of_b_or_a_characters() {
+        let input = "AAABCD";
+        let parser = one_of(vec![
+            character('B'),
+            character('A'),
+        ]);
+
+        let actual = parser.parse(input);
+
+        let expected = Ok(('A', "AABCD"));
         assert_eq!(actual, expected);
     }
 }
