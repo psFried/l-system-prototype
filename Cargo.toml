@@ -2,6 +2,17 @@
 name = "prototype"
 version = "0.1.0"
 authors = ["Daan van Berkel <daan.v.berkel.1980@gmail.com>"]
+edition = "2018"
+
+[workspace]
+members = [
+    "api",
+    "parser",
+    "renderer"
+]
 
 [dependencies]
 turtle = "^1.0.0-rc.2"
+api = {path = "api" }
+parser = {path = "parser" }
+renderer = { path = "renderer" }
