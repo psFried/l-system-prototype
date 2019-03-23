@@ -1,5 +1,5 @@
 
-use api::{LSystemRules, RendererInstruction, Renderer};
+use api::{LSystemRules, RendererInstruction, Renderer, RendererConfig};
 
 use turtle::{Turtle, Point, Angle};
 
@@ -26,7 +26,7 @@ impl State {
 impl Crab {
     pub fn new<C>(c: C) -> Self
     where
-        C: Into<Config>,
+        C: Into<RendererConfig>,
     {
 
         let mut turtle = Turtle::new();
@@ -42,7 +42,7 @@ impl Crab {
     }
 }
 
-impl Renderer<char> for Crab {
+impl Renderer for Crab {
 
     fn push(&mut self) {
         let position = self.turtle.position();
@@ -57,29 +57,12 @@ impl Renderer<char> for Crab {
             self.step = state.step;
             self.turtle.pen_up();
             self.turtle.go_to(state.position);
-            //self.turtle.set_heading(state.heading);
+            self.turtle.set_heading(state.heading);
             self.turtle.pen_down();
         }
     }
 
-    fn render(&mut self, instruction: char) {
-        match instruction {
-            'F' => self.turtle.forward(self.step),
-            'L' => self.turtle.left(self.angle),
-            'R' => self.turtle.right(self.angle),
-            _ => println!("Ignoring inscruction: {}", instruction)
-        }
-    }
-
-    fn flush(&mut self) {
-        // no-op
-    }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Config {
-    pub step: f64,
-    pub angle: f64,
-    pub step_multiplier: f64,
-}
+
 

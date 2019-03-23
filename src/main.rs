@@ -1,6 +1,6 @@
 use parser::parse;
-use api::{LSystemRules, SymbolIterator, Renderer};
-use renderer::{Crab, Config};
+use api::{LSystem, LSystemRules, SymbolIterator, Renderer, Symbol, RendererConfig};
+use renderer::Crab;
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -14,32 +14,21 @@ fn main() {
         .parse::<usize>()
         .expect("enter a valid number as first argument");
 
-    let mut rules = parse("systems/plant.ls")
+    let LSystem {mut rules, render_config} = parse("systems/plant.ls")
         .expect("a definition of a L-system");
 
+    let mut renderer = Crab::new(render_config);
 
-    //let config = (200.0 / 2.5f64.powi(n as i32), 25.0);
-    let config = Config {
-        step: 300.0,
-        step_multiplier: 1.8,
-        angle: 45.0,
-    };
-    let mut renderer = Crab::new(config);
-
-    render(rules.symbol_iterator(n, 'X'), &mut renderer);
+    render(rules.symbol_iterator(n, vec!['X']), &mut renderer);
     println!("Finished");
 }
 
 
-fn render<T>(iter: SymbolIterator<T>, renderer: &mut Renderer<T>) where T: Copy + Eq + Debug + Hash {
-    use api::RendererInstruction;
-    for instruction in iter {
-        println!("instruction: {:?}", instruction);
-        match instruction {
-            RendererInstruction::Push => renderer.push(),
-            RendererInstruction::Pop => renderer.pop(),
-            RendererInstruction::Render(t) => renderer.render(t),
-        }
+fn render<T: Symbol>(iter: SymbolIterator<T>, renderer: &mut Renderer) where T: Copy + Eq + Debug + Hash {
+    for symbol in iter {
+        let instruction = symbol.to_rendering_instruction();
+        println!("symbol: {:?}, instruction: {:?}", symbol, instruction);
+        renderer.render(instruction);
     }
     renderer.flush();
 }

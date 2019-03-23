@@ -4,10 +4,19 @@ pub trait Parser<'a, T> {
     fn parse(&self, input: &'a str) -> Result<(T, &'a str), ParseError>;
 }
 
+impl <'a, T, F> Parser<'a, T> for F where F: Fn(&'a str) -> Result<(T, &'a str), ParseError> {
+    fn parse(&self, input: &'a str) -> Result<(T, &'a str), ParseError> {
+        self(input)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
     IO,
     ExpectingCharacter(char),
+    ExpectingEOF,
+
+    ExpectingString(String),
     ExpectingPredicate,
     EndOfInput,
     ExpectingOneOfToParse,
@@ -179,9 +188,115 @@ impl<'a, T, P> Parser<'a, T> for OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> +
     }
 }
 
+pub struct Literal<'p>(&'p str);
+impl <'a, 'p> Parser<'a, &'a str> for Literal<'p> {
+    fn parse(&self, input: &'a str) -> Result<(&'a str, &'a str), ParseError> {
+        if input.starts_with(self.0) {
+            let len = self.0.len();
+            let substr = &input[..len];
+            let rem = &input[len..];
+            Ok((substr, rem))
+        } else {
+            Err(ParseError::ExpectingString(self.0.to_owned()))
+        }
+    }
+}
+
+pub fn literal(match_exactly: &str) -> Literal {
+    Literal(match_exactly)
+}
+
+pub fn skip_spaces(input: &str) -> Result<((), &str), ParseError> {
+    let byte_count = input.chars().take_while(|c| *c == ' ' || *c == '\t').count();
+    Ok(((), &input[byte_count..]))
+}
+
+fn eof(input: &str) -> Result<((), &str), ParseError> {
+    if input.is_empty() {
+        Ok(((), input))
+    } else {
+        Err(ParseError::ExpectingEOF)
+    }
+}
+
+pub fn complete<'a, T>(parser: impl Parser<'a, T>) -> impl Parser<'a, T> {
+    move |input| {
+        let (res, rem) = parser.parse(input)?;
+        let (_, rem) = eof(rem)?;
+        Ok((res, rem))
+    }
+}
+
+#[macro_export]
+macro_rules! parse_sequence {
+    ($(let $name:ident = $parser:expr),+ => $finish:expr ) => {{
+        |input| {
+            let rem = input;
+            $(
+                let ($name, rem) =$parser.parse(rem)?;
+            )*
+            let result = $finish;
+            Ok((result, rem))
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! parse_sequence_ignore_spaces {
+    ($(let $name:ident = $parser:expr),+ => $finish:expr ) => {{
+        |input| {
+            let rem = input;
+            $(
+                let (_, rem) = $crate::combinator::skip_spaces(rem)?;
+                let ($name, rem) =$parser.parse(rem)?;
+            )*
+            let (_, rem) = $crate::combinator::skip_spaces(rem)?;
+            let result = $finish;
+            Ok((result, rem))
+        }
+    }};
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_literal_string() {
+        let (res, rem) = literal("foo").parse("foo").unwrap();
+        assert_eq!("foo", res);
+        assert!(rem.is_empty());
+    }
+
+    #[test]
+    fn parse_sequence_ignore_spaces_using_macro() {
+
+        let parser = parse_sequence_ignore_spaces!{
+            let a = character('A'),
+            let _foo = literal("foo"),
+            let c = character('C')
+            =>
+            (a, c)
+        };
+        let (result, rem) = parser.parse(" \t A foo\t C  \t ").unwrap();
+        assert_eq!(('A', 'C'), result);
+        assert!(rem.is_empty());
+    }
+
+    #[test]
+    fn parse_sequence_using_macro() {
+        let parser = parse_sequence!{
+            let a = character('A'),
+            let b = character('b')
+            =>
+            (a, b)
+        };
+        let (result, rem) = parser.parse("Ab").expect("failed to parse");
+        assert_eq!(('A', 'b'), result);
+        assert!(rem.is_empty());
+    }
+
+
 
     #[test]
     fn parse_a_character() {

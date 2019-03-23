@@ -2,31 +2,72 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::collections::HashMap;
 
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum RendererInstruction<T: PartialEq + Eq + Hash + Debug + Copy + Clone> {
-    Push,
-    Pop,
-    Render(T),
+#[derive(Debug, PartialEq)]
+pub struct RendererConfig {
+    pub step: f64,
+    pub angle: f64,
+    pub step_multiplier: f64,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum RendererInstruction {
+    Forward,
 
-pub struct Rule<T: PartialEq + Eq + Hash + Debug + Copy + Clone> {
+    RotateLeft,
+    RotateRight,
+
+    Push,
+    Pop,
+
+    IncreaseStep,
+    DecreaseStep,
+    // IncreaseAngleIncrement,
+    // DecreaseAngleIncrement,
+    // IncreaseLineWidth,
+    // DecreaseLineWidth,
+
+    NoOp,
+}
+
+pub trait Symbol: Debug + Eq + Hash + Copy {
+    fn to_rendering_instruction(&self) -> RendererInstruction;
+}
+
+impl Symbol for char {
+    fn to_rendering_instruction(&self) -> RendererInstruction {
+        match *self {
+            'F' => RendererInstruction::Forward,
+            '+' => RendererInstruction::RotateRight,
+            '-' => RendererInstruction::RotateLeft,
+
+            '[' => RendererInstruction::Push,
+            ']' => RendererInstruction::Pop,
+
+            '#' => RendererInstruction::IncreaseStep,
+            '!' => RendererInstruction::DecreaseStep,
+
+            _ => RendererInstruction::NoOp,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Rule<T: Symbol> {
     pub match_input: T,
     pub productions: Vec<T>
 }
 
-impl<T: PartialEq + Eq + Hash + Debug + Copy + Clone> Rule<T> {
+impl<T: Symbol> Rule<T> {
     pub fn new(match_input: T, productions: Vec<T>) -> Rule<T> {
         Rule { match_input, productions }
     }
 }
 
-pub struct LSystemRules<T: PartialEq + Eq + Hash + Debug + Copy + Clone> {
+pub struct LSystemRules<T: Symbol> {
     rules: HashMap<T, Vec<T>>,
 }
 
-impl <T: PartialEq + Eq + Hash + Debug + Copy + Clone> LSystemRules<T> {
+impl <T: Symbol> LSystemRules<T> {
 
     pub fn new() -> LSystemRules<T> {
         LSystemRules {
@@ -58,83 +99,93 @@ impl <T: PartialEq + Eq + Hash + Debug + Copy + Clone> LSystemRules<T> {
         })
     }
 
-    pub fn symbol_iterator(&mut self, max_stack_depth: usize, start_symbol: T) -> SymbolIterator<T> {
+    pub fn symbol_iterator(&mut self, iterations: usize, axiom: Vec<T>) -> SymbolIterator<T> {
         SymbolIterator {
-            initial: Some(start_symbol),
+            axiom: axiom.into_iter(),
             rules: self,
-            max_stack_depth,
-            stack: Vec::with_capacity(max_stack_depth),
+            iterations,
+            stack: Vec::with_capacity(iterations),
         }
     }
 }
 
+pub struct LSystem<T: Symbol> {
+    pub rules: LSystemRules<T>,
+    pub render_config: RendererConfig,
+}
 
-pub struct SymbolIterator<'a, T: PartialEq + Eq + Hash + Debug + Copy + Clone> {
-    initial: Option<T>,
+
+pub struct SymbolIterator<'a, T: Symbol> {
+    axiom: std::vec::IntoIter<T>,
     rules: &'a LSystemRules<T>,
-    max_stack_depth: usize,
+    iterations: usize,
     stack: Vec<std::vec::IntoIter<T>>,
 }
 
-impl<T: PartialEq + Eq + Hash + Debug + Copy + Clone> SymbolIterator<'_, T> {
+impl<T: Symbol> SymbolIterator<'_, T> {
 
-    fn pop_symbol(&mut self) -> Option<T> {
-        let first_symbol = self.stack.last_mut().and_then(|symbols| {
-            symbols.next()
-        });
-        if first_symbol.is_none() {
-            //println!("popping stack");
+    fn pop_next_symbol(&mut self) -> Option<T> {
+        self.stack.last_mut().and_then(|s| s.next())
+            .or_else(|| self.axiom.next())
+    }
+
+    fn clear_empty_stack_frames(&mut self) {
+        while self.stack.last().filter(|s| s.len() == 0).is_some() {
             self.stack.pop();
         }
-        first_symbol
     }
-
 }
 
-impl<T: PartialEq + Eq + Hash + Debug + Copy + Clone> Iterator for SymbolIterator<'_, T> {
-    type Item = RendererInstruction<T>;
+impl<T: Symbol> Iterator for SymbolIterator<'_, T> {
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // special case for the very beginning of the iterator
-        if let Some(start) = self.initial.take() {
-            self.stack.push(vec![start].into_iter());
-            return Some(RendererInstruction::Push);
-        }
+        self.clear_empty_stack_frames();
 
-        if self.stack.is_empty() {
-            None
-        } else {
-            let sym = self.pop_symbol();
-            if let Some(symbol) = sym {
-                if self.stack.len() < self.max_stack_depth {
-                    let next_list = self.rules.apply(symbol);
-                    self.stack.push(next_list.into_iter());
-                    // println!("Pushing onto stack from: {:?}, new stack len: {}", symbol, self.stack.len());
-                    Some(RendererInstruction::Push)
-                } else {
-                    // println!("Rendering symbol: {:?}", symbol);
-                    Some(RendererInstruction::Render(symbol))
-                }
+        for _ in self.stack.len()..self.iterations {
+            if let Some(symbol) = self.pop_next_symbol() {
+                let replacement = self.rules.apply(symbol);
+                self.stack.push(replacement.into_iter());
             } else {
-                // println!("Popped from stack, new len: {}", self.stack.len());
-                Some(RendererInstruction::Pop)
+                break;
             }
         }
+        self.pop_next_symbol()
     }
 }
 
-pub trait Renderer<T> {
-    fn push(&mut self);
-    fn pop(&mut self);
-    fn render(&mut self, instruction: T);
 
-    fn flush(&mut self);
+pub trait Renderer {
+
+    fn render(&mut self, instruction: RendererInstruction) {
+        match instruction {
+            RendererInstruction::Push => self.push(),
+            RendererInstruction::Pop => self.pop(),
+            RendererInstruction::Forward => self.forward(),
+            RendererInstruction::RotateLeft => self.rotate_left(),
+            RendererInstruction::RotateRight => self.rotate_right(),
+            RendererInstruction::IncreaseStep => self.increase_step(),
+            RendererInstruction::DecreaseStep =>  self.decrease_step(),
+            _ => { /* no-op */ }
+        }
+    }
+
+    fn push(&mut self) {}
+    fn pop(&mut self) {}
+
+    fn forward(&mut self) {}
+    fn rotate_left(&mut self) {}
+    fn rotate_right(&mut self) {}
+
+    fn increase_step(&mut self) {}
+    fn decrease_step(&mut self) {}
+
+    fn flush(&mut self) {}
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use super::RendererInstruction::*;
 
     #[test]
     fn given_a_rule_system_where_every_symbol_is_referenced_the_rules_yeild_the_expected_symbols() {
@@ -143,18 +194,14 @@ mod test {
                 .add('b', vec!['c'])
                 .add('c', vec!['a', 'b', 'c']);
 
-        let result = system.symbol_iterator(3, 'c').take(36).collect::<Vec<_>>();
+        let result1 = system.symbol_iterator(1, vec!['c']).collect::<Vec<_>>();
+        assert_eq!(result1, vec!['a', 'b', 'c']);
 
-        let expected = vec![
-            Push, Push, Push,
-            Render('b'), Render('c'),
-            Pop, Push,
-            Render('c'),
-            Pop, Push,
-            Render('a'), Render('b'), Render('c'),
-            Pop, Pop, Pop
-        ];
-        println!("result: {:?}", result);
-        assert_eq!(result, expected);
+        let result2 = system.symbol_iterator(1, vec!['a', 'b', 'c']).take(20).collect::<Vec<_>>();
+        assert_eq!(result2, vec!['b', 'c', 'c', 'a', 'b', 'c']);
+
+        let result3 = system.symbol_iterator(2, vec!['c']).collect::<Vec<_>>();
+        assert_eq!(result2, result3);
     }
+
 }
