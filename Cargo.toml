@@ -12,7 +12,6 @@ members = [
 ]
 
 [dependencies]
-turtle = "^1.0.0-rc.2"
 api = {path = "api" }
 parser = {path = "parser" }
 renderer = { path = "renderer" }

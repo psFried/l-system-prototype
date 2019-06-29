@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct RendererConfig {
     pub step: f64,
     pub angle: f64,
@@ -51,7 +51,7 @@ impl Symbol for char {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Rule<T: Symbol> {
     pub match_input: T,
     pub productions: Vec<T>
@@ -63,6 +63,7 @@ impl<T: Symbol> Rule<T> {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct LSystemRules<T: Symbol> {
     rules: HashMap<T, Vec<T>>,
 }
@@ -109,6 +110,7 @@ impl <T: Symbol> LSystemRules<T> {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct LSystem<T: Symbol> {
     pub rules: LSystemRules<T>,
     pub render_config: RendererConfig,
@@ -156,6 +158,7 @@ impl<T: Symbol> Iterator for SymbolIterator<'_, T> {
 
 
 pub trait Renderer {
+    fn global_init() where Self: Sized {}
 
     fn render(&mut self, instruction: RendererInstruction) {
         match instruction {
@@ -180,7 +183,7 @@ pub trait Renderer {
     fn increase_step(&mut self) {}
     fn decrease_step(&mut self) {}
 
-    fn flush(&mut self) {}
+    fn finish(&mut self) {}
 }
 
 #[cfg(test)]

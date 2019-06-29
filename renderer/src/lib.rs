@@ -1,5 +1,5 @@
 
-use api::{LSystemRules, RendererInstruction, Renderer, RendererConfig};
+use api::{Renderer, RendererConfig};
 
 use turtle::{Turtle, Point, Angle};
 
@@ -44,6 +44,21 @@ impl Crab {
 
 impl Renderer for Crab {
 
+    fn global_init() {
+        turtle::start();
+    }
+
+    fn forward(&mut self) {
+        self.turtle.forward(self.step);
+    }
+
+    fn rotate_left(&mut self) {
+        self.turtle.left(self.angle);
+    }
+
+    fn rotate_right(&mut self) {
+        self.turtle.right(self.angle);
+    }
     fn push(&mut self) {
         let position = self.turtle.position();
         let heading = self.turtle.heading();
@@ -60,6 +75,10 @@ impl Renderer for Crab {
             self.turtle.set_heading(state.heading);
             self.turtle.pen_down();
         }
+    }
+
+    fn finish(&mut self) {
+        self.turtle.hide();
     }
 
 }
