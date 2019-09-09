@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Daan van Berkel <daan.v.berkel.1980@gmail.com>"]
 edition = "2018"
 
+[[bin]]
+name = "l-system"
+path = "src/main.rs"
+
 [workspace]
 members = [
     "api",
@@ -15,3 +19,4 @@ members = [
 api = {path = "api" }
 parser = {path = "parser" }
 renderer = { path = "renderer" }
+clap = "2.33"
