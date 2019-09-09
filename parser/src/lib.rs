@@ -21,11 +21,52 @@ where P: AsRef<Path> {
     })
 }
 
+enum RenderConfigItem {
+    Step(f64),
+    Angle(f64),
+    StepMultiplier(f64),
+}
+
+impl RenderConfigItem {
+
+    fn set(&self, config: &mut RendererConfig) {
+        match *self {
+            RenderConfigItem::Step(step) => config.step = step,
+            RenderConfigItem::Angle(angle) => config.angle = angle,
+            RenderConfigItem::StepMultiplier(mul) => config.step_multiplier = mul,
+        }
+    }
+}
+
 fn to_parse_error(_io_error: Error) -> ParseError {
     ParseError::IO
 }
 
+fn key_equals_value<T>(key: &'static str, value_parser: impl Parser<T>, create: impl Fn(T) -> RenderConfigItem) -> impl Parser<RenderConfigItem> {
+    parse_sequence_ignore_spaces!{
+        let _key = literal(key),
+        let _eq = literal("="),
+        let value = value_parser
+        =>
+        create(value)
+    }
+}
+
+fn parse_float(input: &str) -> Result<(f64, &str), ParseError> {
+    unimplemented!()
+}
+
+fn config_item_parser() -> impl Parser<RenderConfigItem> {
+    one_of(vec![
+        key_equals_value("step", parse_float, |s| RenderConfigItem::Step(s))
+    ])
+}
+
 fn parse_config(input: &str) -> Result<(&str, RendererConfig), ParseError> {
+    let (_, input) = skip_all_ws(input)?;
+
+
+
     // TODO: actually parse the config
     let config = RendererConfig {
         step: 2.0,
@@ -44,7 +85,7 @@ fn non_ws_char(input: &str) -> Result<(char, &str), ParseError> {
     }
 }
 
-fn parse_symbol<'a>() -> impl Parser<'a, char> {
+fn parse_symbol() -> impl Parser<char> {
     parse_sequence_ignore_spaces!{
         let c = non_ws_char
         =>
@@ -57,14 +98,13 @@ fn skip_all_ws(input: &str) -> Result<((), &str), ParseError> {
     Ok(((), &input[byte_count..]))
 }
 
-fn newline<'a>() -> impl Parser<'a, ()> {
+fn newline() -> impl Parser<()> {
     map(one_of(vec![literal("\n"), literal("\r\n"), literal("\r")]), |_| () )
 }
 
 
 fn parse_rules(input: &str) -> Result<Vec<Rule<char>>, ParseError> {
     let parse_rule = parse_sequence_ignore_spaces!{
-        let _extra_ws = skip_all_ws,
         let to_match = parse_symbol(),
         let _separator = literal("=>"),
         let replacements = at_least(1, parse_symbol()),
@@ -79,10 +119,6 @@ fn parse_rules(input: &str) -> Result<Vec<Rule<char>>, ParseError> {
     })
 }
 
-
-// fn config_parser<'a>() -> impl Parser<'a, RendererConfig> {
-//     unimplemented!()
-// }
 
 #[cfg(test)]
 mod tests {

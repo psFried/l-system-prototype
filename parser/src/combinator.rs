@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
 
-pub trait Parser<'a, T> {
-    fn parse(&self, input: &'a str) -> Result<(T, &'a str), ParseError>;
+pub trait Parser<T> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(T, &'a str), ParseError>;
 }
 
-impl <'a, T, F> Parser<'a, T> for F where F: Fn(&'a str) -> Result<(T, &'a str), ParseError> {
-    fn parse(&self, input: &'a str) -> Result<(T, &'a str), ParseError> {
+impl <T, F> Parser<T> for F where F: Fn(&str) -> Result<(T, &str), ParseError> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(T, &'a str), ParseError> {
         self(input)
     }
 }
@@ -28,17 +28,17 @@ pub struct Character {
 }
 
 impl Character {
-    pub fn new<'a>(character_to_match: char) -> impl Parser<'a, char> {
+    pub fn new(character_to_match: char) -> impl Parser<char> {
         Self { character_to_match }
     }
 }
 
-pub fn character<'a>(character_to_match: char) -> impl Parser<'a, char> {
+pub fn character(character_to_match: char) -> impl Parser<char> {
     Character::new(character_to_match)
 }
 
-impl<'a> Parser<'a, char> for Character {
-    fn parse(&self, input: &'a str) -> Result<(char, &'a str), ParseError> {
+impl Parser<char> for Character {
+    fn parse<'a>(&self, input: &'a str) -> Result<(char, &'a str), ParseError> {
         if input.starts_with(self.character_to_match) {
             Ok((self.character_to_match, &input[1..]))
         } else {
@@ -47,29 +47,59 @@ impl<'a> Parser<'a, char> for Character {
     }
 }
 
-pub fn many<'a, T>(parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
+// pub struct Capture<T, P: Parser<T>> {
+//     parser: P,
+//     phantom: PhantomData<T>,
+// }
+
+// impl <T, P: Parser<T>> Parser<&'_ str> for Capture<T, P> {
+//     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, &'a str), ParseError> {
+//         let start_len = input.len();
+//         self.parser.parse(input).map(|(_, remaining)| {
+//             let remaining_len = remaining.len();
+//             // slice the input to return the portion of it that was matched by the parser
+//             let result = &input[..(start_len - remaining_len)];
+//             (result, remaining)
+//         })
+//     }
+// }
+
+// pub fn capture<'a, T, P: Parser<T>>(parser: P) -> impl Parser<&'_ str> {
+//     |input: &str| {
+//         let start_len = input.len();
+//         parser.parse(input).map(|(_, remaining)| {
+//             let remaining_len = remaining.len();
+//             // slice the input to return the portion of it that was matched by the parser
+//             let result = &input[..(start_len - remaining_len)];
+//             (result, remaining)
+//         })
+//     }
+//     // Capture { parser, phantom: PhantomData }
+// }
+
+pub fn many<T>(parser: impl Parser<T>) -> impl Parser<Vec<T>> {
     at_least(0, parser)
 }
 
 
-pub struct AtLeast<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+pub struct AtLeast<T, P> where P: Parser<T> + Sized {
     n: u8,
     parser: P,
-    phantom: PhantomData<&'a T>,
+    phantom: PhantomData<T>,
 }
 
-impl<'a, T, P> AtLeast<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+impl<T, P> AtLeast<T, P> where P: Parser<T> + Sized {
     pub fn new(n: u8, parser: P) -> Self {
         AtLeast { n, parser, phantom: PhantomData }
     }
 }
 
-pub fn at_least<'a, T>(n: u8, parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
+pub fn at_least<T, P: Parser<T> + Sized>(n: u8, parser: P) -> impl Parser<Vec<T>> {
     AtLeast::new(n, parser)
 }
 
-impl<'a, T, P> Parser<'a, Vec<T>> for AtLeast<'a, T, P> where P: Parser<'a, T> + Sized {
-    fn parse(&self, input: &'a str) -> Result<(Vec<T>, &'a str), ParseError> {
+impl<T, P> Parser<Vec<T>> for AtLeast<T, P> where P: Parser<T> + Sized {
+    fn parse<'a>(&self, input: &'a str) -> Result<(Vec<T>, &'a str), ParseError> {
         let mut result = vec![];
         let mut source = input;
         let mut count = self.n;
@@ -114,12 +144,12 @@ impl<F> Any<F> where F: Fn(char) -> bool + Sized {
     }
 }
 
-pub fn any<'a, F>(predicate: F) -> impl Parser<'a, char> where F: Fn(char) -> bool + Sized {
+pub fn any<F>(predicate: F) -> impl Parser<char> where F: Fn(char) -> bool + Sized {
     Any::new(predicate)
 }
 
-impl<'a, F> Parser<'a, char> for Any<F> where F: Fn(char) -> bool + Sized {
-    fn parse(&self, input: &'a str) -> Result<(char, &'a str), ParseError> {
+impl<F> Parser<char> for Any<F> where F: Fn(char) -> bool + Sized {
+    fn parse<'a>(&self, input: &'a str) -> Result<(char, &'a str), ParseError> {
         let character = input.chars().next();
         match character {
             Some(c) => {
@@ -137,47 +167,46 @@ impl<'a, F> Parser<'a, char> for Any<F> where F: Fn(char) -> bool + Sized {
     }
 }
 
-pub struct Map<'a, I, O, P, F> where I: 'a, P: Parser<'a, I> + Sized, F: Fn(I) -> O + Sized {
-
+pub struct Map<I, O, P, F> where I: 'static, P: Parser<I> + Sized, F: Fn(I) -> O + Sized {
     parser: P,
     map: F,
-    phantom: PhantomData<&'a I>,
+    phantom: PhantomData<I>,
 }
 
-impl<'a, I, O, P, F> Map<'a, I, O, P, F> where I: 'a, P: Parser<'a, I> + Sized, F: Fn(I) -> O + Sized {
+impl<I, O, P, F> Map<I, O, P, F> where I: 'static, P: Parser<I> + Sized, F: Fn(I) -> O + Sized {
     pub fn new(parser: P, map: F) -> Self {
         Map { parser, map, phantom: PhantomData }
     }
 }
 
-pub fn map<'a, I, O, P, F>(parser: P, map: F) -> impl Parser<'a, O> where I: 'a, P: Parser<'a, I> + Sized, F: Fn(I) -> O + Sized {
+pub fn map<I, O, P, F>(parser: P, map: F) -> impl Parser<O> where I: 'static, P: Parser<I> + Sized, F: Fn(I) -> O + Sized {
     Map::new(parser, map)
 }
 
-impl<'a, I, O, P, F> Parser<'a, O> for Map<'a, I, O, P, F> where I: 'a, P: Parser<'a, I> + Sized, F: Fn(I) -> O + Sized {
-    fn parse(&self, input: &'a str) -> Result<(O, &'a str), ParseError> {
+impl<I, O, P, F> Parser<O> for Map<I, O, P, F> where I: 'static, P: Parser<I> + Sized, F: Fn(I) -> O + Sized {
+    fn parse<'a>(&self, input: &'a str) -> Result<(O, &'a str), ParseError> {
         let attempt = self.parser.parse(input);
         attempt.map(|(v, rest)|{ ((self.map)(v), rest)})
     }
 }
 
-pub struct OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+pub struct OneOf<T, P> where T: 'static, P: Parser<T> + Sized {
     options: Vec<P>,
-    phantom: PhantomData<&'a T>,
+    phantom: PhantomData<T>,
 }
 
-impl<'a, T, P> OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+impl<T, P> OneOf<T, P> where T: 'static, P: Parser<T> + Sized {
     pub fn new(options: Vec<P>) -> Self {
         Self { options, phantom: PhantomData }
     }
 }
 
-pub fn one_of<'a, T, P>(options: Vec<P>) -> impl Parser<'a, T> where T: 'a, P: Parser<'a, T> + Sized {
+pub fn one_of<T, P>(options: Vec<P>) -> impl Parser<T> where T: 'static, P: Parser<T> + Sized {
     OneOf::new(options)
 }
 
-impl<'a, T, P> Parser<'a, T> for OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
-    fn parse(&self, input: &'a str) -> Result<(T, &'a str), ParseError> {
+impl<T, P> Parser<T> for OneOf<T, P> where T: 'static, P: Parser<T> + Sized {
+    fn parse<'a>(&self, input: &'a str) -> Result<(T, &'a str), ParseError> {
         for ref parser in &self.options {
             let attempt = parser.parse(input);
             if attempt.is_ok() {
@@ -189,13 +218,12 @@ impl<'a, T, P> Parser<'a, T> for OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> +
 }
 
 pub struct Literal<'p>(&'p str);
-impl <'a, 'p> Parser<'a, &'a str> for Literal<'p> {
-    fn parse(&self, input: &'a str) -> Result<(&'a str, &'a str), ParseError> {
+impl <'p> Parser<()> for Literal<'p> {
+    fn parse<'a>(&self, input: &'a str) -> Result<((), &'a str), ParseError> {
         if input.starts_with(self.0) {
             let len = self.0.len();
-            let substr = &input[..len];
             let rem = &input[len..];
-            Ok((substr, rem))
+            Ok(((), rem))
         } else {
             Err(ParseError::ExpectingString(self.0.to_owned()))
         }
@@ -211,6 +239,7 @@ pub fn skip_spaces(input: &str) -> Result<((), &str), ParseError> {
     Ok(((), &input[byte_count..]))
 }
 
+
 fn eof(input: &str) -> Result<((), &str), ParseError> {
     if input.is_empty() {
         Ok(((), input))
@@ -219,23 +248,33 @@ fn eof(input: &str) -> Result<((), &str), ParseError> {
     }
 }
 
-pub fn complete<'a, T>(parser: impl Parser<'a, T>) -> impl Parser<'a, T> {
-    move |input| {
-        let (res, rem) = parser.parse(input)?;
+pub struct Complete<T, P: Parser<T>>(P, PhantomData<T>);
+impl <T, P: Parser<T>> Parser<T> for Complete<T, P> {
+    fn parse<'a>(&self, input: &'a str) -> Result<(T, &'a str), ParseError> {
+        let (res, rem) = self.0.parse(input)?;
         let (_, rem) = eof(rem)?;
         Ok((res, rem))
     }
 }
 
+pub fn complete<T>(parser: impl Parser<T>) -> impl Parser<T> {
+    // move |input| {
+    //     let (res, rem) = parser.parse(input)?;
+    //     let (_, rem) = eof(rem)?;
+    //     Ok((res, rem))
+    // }
+    Complete(parser, PhantomData)
+}
+
 #[macro_export]
 macro_rules! parse_sequence {
     ($(let $name:ident = $parser:expr),+ => $finish:expr ) => {{
-        |input| {
-            let rem = input;
+        |input: &str| {
+            let rem: &_ = input;
             $(
                 let ($name, rem) =$parser.parse(rem)?;
             )*
-            let result = $finish;
+            let result = { $finish };
             Ok((result, rem))
         }
     }};
@@ -244,14 +283,14 @@ macro_rules! parse_sequence {
 #[macro_export]
 macro_rules! parse_sequence_ignore_spaces {
     ($(let $name:ident = $parser:expr),+ => $finish:expr ) => {{
-        |input| {
-            let rem = input;
+        |input: &str| {
+            let rem: &_ = input;
             $(
                 let (_, rem) = $crate::combinator::skip_spaces(rem)?;
                 let ($name, rem) =$parser.parse(rem)?;
             )*
             let (_, rem) = $crate::combinator::skip_spaces(rem)?;
-            let result = $finish;
+            let result = { $finish };
             Ok((result, rem))
         }
     }};
