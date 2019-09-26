@@ -10,6 +10,28 @@ impl <'a, T, F> Parser<'a, T> for F where F: Fn(&'a str) -> Result<(T, &'a str),
     }
 }
 
+pub fn optional<'a, T: 'static>(parser: impl Parser<'a, T>) -> impl Parser<'a, Option<T>> {
+    Optional {
+        inner: parser,
+        _phantom: PhantomData,
+    }
+}
+
+struct Optional<'a, T, P: Parser<'a, T>> {
+    inner: P,
+    _phantom: PhantomData<&'a T>,
+}
+
+impl <'a, T, P> Parser<'a, Option<T>> for Optional<'a, T, P> where P: Parser<'a, T> {
+    fn parse(&self, input: &'a str) -> Result<(Option<T>, &'a str), ParseError> {
+        match self.inner.parse(input) {
+            Ok((value, rem)) => Ok((Some(value), rem)),
+            Err(e) => Ok((None, input))
+        }
+    }
+}
+
+
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
     IO,
@@ -21,7 +43,17 @@ pub enum ParseError {
     EndOfInput,
     ExpectingOneOfToParse,
     GenericError,
+
+    Custom(failure::Error),
 }
+
+impl From<failure::Error> for ParseError {
+    fn from(e: failure::Error) -> ParseError {
+        ParseError::Custom(e)
+    }
+}
+
+pub type ParseResult<'a, T> = Result<(T, &'a str), ParseError>;
 
 pub struct Character {
     character_to_match : char,
@@ -47,7 +79,7 @@ impl<'a> Parser<'a, char> for Character {
     }
 }
 
-pub fn many<'a, T>(parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
+pub fn many<'a, T: 'static>(parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
     at_least(0, parser)
 }
 
@@ -64,7 +96,7 @@ impl<'a, T, P> AtLeast<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
     }
 }
 
-pub fn at_least<'a, T>(n: u8, parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
+pub fn at_least<'a, T: 'static>(n: u8, parser: impl Parser<'a, T>) -> impl Parser<'a, Vec<T>> {
     AtLeast::new(n, parser)
 }
 
@@ -161,6 +193,10 @@ impl<'a, I, O, P, F> Parser<'a, O> for Map<'a, I, O, P, F> where I: 'a, P: Parse
     }
 }
 
+pub fn flat_map<'a, I, F, E, O>(a: impl Parser<'a, I>, mapper: F) -> impl Parser<'a, O> where F: Fn(I) -> Result<O, E>, E: Into<ParseError> {
+    unimplemented!()
+}
+
 pub struct OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
     options: Vec<P>,
     phantom: PhantomData<&'a T>,
@@ -248,7 +284,7 @@ macro_rules! parse_sequence_ignore_spaces {
             let rem = input;
             $(
                 let (_, rem) = $crate::combinator::skip_spaces(rem)?;
-                let ($name, rem) =$parser.parse(rem)?;
+                let ($name, rem) = $crate::combinator::Parser::parse(&$parser, rem)?;
             )*
             let (_, rem) = $crate::combinator::skip_spaces(rem)?;
             let result = $finish;
