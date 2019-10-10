@@ -43,15 +43,9 @@ pub enum ParseError {
     EndOfInput,
     ExpectingOneOfToParse,
     GenericError,
-
-    Custom(failure::Error),
+    Custom(String),
 }
 
-impl From<failure::Error> for ParseError {
-    fn from(e: failure::Error) -> ParseError {
-        ParseError::Custom(e)
-    }
-}
 
 pub type ParseResult<'a, T> = Result<(T, &'a str), ParseError>;
 
@@ -194,35 +188,56 @@ impl<'a, I, O, P, F> Parser<'a, O> for Map<'a, I, O, P, F> where I: 'a, P: Parse
 }
 
 pub fn flat_map<'a, I, F, E, O>(a: impl Parser<'a, I>, mapper: F) -> impl Parser<'a, O> where F: Fn(I) -> Result<O, E>, E: Into<ParseError> {
-    unimplemented!()
-}
-
-pub struct OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
-    options: Vec<P>,
-    phantom: PhantomData<&'a T>,
-}
-
-impl<'a, T, P> OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
-    pub fn new(options: Vec<P>) -> Self {
-        Self { options, phantom: PhantomData }
+    move |input: &'a str| {
+        let (a, remaining) = a.parse(input)?;
+        let b = mapper(a).map_err(Into::into)?;
+        Ok((b, remaining))
     }
 }
 
-pub fn one_of<'a, T, P>(options: Vec<P>) -> impl Parser<'a, T> where T: 'a, P: Parser<'a, T> + Sized {
-    OneOf::new(options)
+pub fn recognize<'a, T>(p: impl Parser<'a, T>) -> impl Parser<'a, &'a str> {
+    move |input: &'a str| {
+        let (_, rem) = p.parse(input)?;
+        let match_len = input.len() - rem.len();
+        let matched = &input[..match_len];
+        Ok((matched, rem))
+    }
 }
 
-impl<'a, T, P> Parser<'a, T> for OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
-    fn parse(&self, input: &'a str) -> Result<(T, &'a str), ParseError> {
-        for ref parser in &self.options {
+// pub struct OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+//     options: Vec<P>,
+//     phantom: PhantomData<&'a T>,
+// }
+
+// impl<'a, T, P> OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+//     pub fn new(options: Vec<P>) -> Self {
+//         Self { options, phantom: PhantomData }
+//     }
+// }
+
+pub fn one_of<'a, T>(options: Vec<Box<dyn Parser<'a, T>>>) -> impl Parser<'a, T> where T: 'a {
+    move |input: &'a str| {
+        for ref parser in options.iter() {
             let attempt = parser.parse(input);
             if attempt.is_ok() {
-                return attempt
+                return attempt;
             }
         }
         Err(ParseError::ExpectingOneOfToParse)
     }
 }
+
+// impl<'a, T, P> Parser<'a, T> for OneOf<'a, T, P> where T: 'a, P: Parser<'a, T> + Sized {
+//     fn parse(&self, input: &'a str) -> Result<(T, &'a str), ParseError> {
+//         for ref parser in &self.options {
+//             let attempt = parser.parse(input);
+//             if attempt.is_ok() {
+//                 return attempt
+//             }
+//         }
+//         Err(ParseError::ExpectingOneOfToParse)
+//     }
+// }
 
 pub struct Literal<'p>(&'p str);
 impl <'a, 'p> Parser<'a, &'a str> for Literal<'p> {
@@ -238,7 +253,7 @@ impl <'a, 'p> Parser<'a, &'a str> for Literal<'p> {
     }
 }
 
-pub fn literal(match_exactly: &str) -> Literal {
+pub fn literal<'p>(match_exactly: &'p str) -> Literal<'p> {
     Literal(match_exactly)
 }
 

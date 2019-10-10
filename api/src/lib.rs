@@ -4,9 +4,29 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct RendererConfig {
-    pub step: f64,
-    pub angle: f64,
+    pub starting_step: f64,
     pub step_multiplier: f64,
+    pub starting_angle: f64,
+    pub angle_multiplier: f64,
+    pub starting_line_width: f64,
+    pub line_width_multiplier: f64,
+    pub background_color: String,
+    pub pen_color: String,
+}
+
+impl Default for RendererConfig {
+    fn default() -> RendererConfig {
+        RendererConfig {
+            starting_step: 10.0,
+            step_multiplier: 1.5,
+            starting_angle: 45.0,
+            angle_multiplier: 2.0,
+            starting_line_width: 4.0,
+            line_width_multiplier: 1.5,
+            background_color: "white".to_owned(),
+            pen_color: "black".to_owned(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -160,6 +180,8 @@ impl<T: Symbol> Iterator for SymbolIterator<'_, T> {
 pub trait Renderer {
     fn global_init() where Self: Sized {}
 
+    fn new(renderer_config: RendererConfig) -> Self;
+
     fn render(&mut self, instruction: RendererInstruction) {
         match instruction {
             RendererInstruction::Push => self.push(),
@@ -169,7 +191,7 @@ pub trait Renderer {
             RendererInstruction::RotateRight => self.rotate_right(),
             RendererInstruction::IncreaseStep => self.increase_step(),
             RendererInstruction::DecreaseStep =>  self.decrease_step(),
-            _ => { /* no-op */ }
+            RendererInstruction::NoOp => { /* no-op */ }
         }
     }
 

@@ -23,29 +23,25 @@ impl State {
     }
 }
 
-impl Crab {
-    pub fn new<C>(c: C) -> Self
-    where
-        C: Into<RendererConfig>,
-    {
-
-        let mut turtle = Turtle::new();
-        turtle.set_heading(65.0);
-        let config = c.into();
-        Self {
-            step: config.step,
-            step_multiplier: config.step_multiplier,
-            angle: config.angle,
-            stack: Vec::new(),
-            turtle,
-        }
-    }
-}
 
 impl Renderer for Crab {
 
     fn global_init() {
         turtle::start();
+    }
+
+    fn new(config: RendererConfig) -> Self {
+        let mut turtle = Turtle::new();
+        turtle.drawing_mut().set_background_color(config.background_color.as_str());
+        turtle.set_heading(config.starting_angle);
+        turtle.set_pen_color(config.pen_color.as_str());
+        Self {
+            step: config.starting_step,
+            step_multiplier: config.step_multiplier,
+            angle: config.starting_angle,
+            stack: Vec::new(),
+            turtle,
+        }
     }
 
     fn forward(&mut self) {
